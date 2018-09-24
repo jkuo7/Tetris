@@ -233,10 +233,10 @@ public class Tetrimino{
 			for(int i=0; i<4; i++){
 				if(color.equals(Color.CYAN)){
 					kickCols[i] = rotCols[i] + xKickI[rotationState][(1-sin)/2][j];
-					kickRows[i] = rotRows[i] + yKickI[rotationState][(1-sin)/2][j];
+					kickRows[i] = rotRows[i] - yKickI[rotationState][(1-sin)/2][j];
 				}else{
 					kickCols[i] = rotCols[i] + xKick[rotationState][(1-sin)/2][j];
-					kickRows[i] = rotRows[i] + yKick[rotationState][(1-sin)/2][j];
+					kickRows[i] = rotRows[i] - yKick[rotationState][(1-sin)/2][j];
 				}
 			}
 
