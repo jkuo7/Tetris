@@ -144,7 +144,6 @@ public class Tetris extends JPanel{
     				heldPiece.hold();
     				makeNewPiece();
     				holding=true;
-    				repaint(HELDSTARTX, HELDSTARTY, HELDWIDTH - 1, HELDHEIGHT - 1);
     			}
     		}
     	};
@@ -235,6 +234,7 @@ public class Tetris extends JPanel{
 		Otherwise, makes the next piece the current piece, shifts the following next pieces, and makes a new next piece*/
 		if(!holding){
 			currentPiece = nextPiece;
+			currentPiece.makeCurrent();
 			nextPiece = nextPiece2;
 			nextPiece2 = nextPiece3;
 			nextPiece3 = nextPiece4;
@@ -244,6 +244,7 @@ public class Tetris extends JPanel{
 			repaint(NEXTSTARTX, NEXTSTARTY, 6*NEXTSIZE, 22*NEXTSIZE);
 		}else{
 			currentPiece = heldPiece;
+			currentPiece.makeCurrent();
 			holding = false;
 			repaint(HELDSTARTX, HELDSTARTY, HELDWIDTH - 1, HELDHEIGHT - 1);
 		}

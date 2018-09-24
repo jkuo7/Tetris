@@ -18,6 +18,13 @@ public class Tetrimino{
 	private int [] curRows;
 	private int [] curCols;
 
+	//Stores the locations of the piece's ghost
+	private int[] ghostRows = {-1,-1,-1,-1};
+	private int[] ghostCols = {3, 4, 5, 6};
+
+	private int[] oldGhostRows = {-1,-1,-1,-1};
+	private int[] oldGhostCols = {3, 4, 5, 6};
+
 	//Stores the piece's current rotation state (0, 1, 2, 3), increasing for clockwise, decreasing for counterclockwise
 	private int rotationState = 0;
 
@@ -34,7 +41,6 @@ public class Tetrimino{
 	private static final int GRIDSTARTX = HELDSTARTX + HELDWIDTH + SIZE;
 	private static final int GRIDSTARTY = 50;
 	private static final int HELDSTARTY = GRIDSTARTY;
-
 
 	private static final int NEXTSTARTX = GRIDSTARTX + BOARDWIDTH*SIZE + SIZE;
 	private static final int NEXTSTARTY = GRIDSTARTY;
@@ -56,6 +62,10 @@ public class Tetrimino{
 		curCols = Arrays.copyOf(startCols[num], 4);
 	}
 
+	public void makeCurrent(){
+		positionGhost();
+	}
+
 	public Color getColor(){
 		return color;
 	}
@@ -72,7 +82,12 @@ public class Tetrimino{
 
 	public void paint(Graphics2D g2d){
 		//Paints the piece in the game
+		// positionGhost();
 		for(int i=0; i<4; i++){
+			g2d.setColor(color);
+			if(ghostRows[i] >= 0){
+				g2d.drawRect(SIZE*ghostCols[i] + GRIDSTARTX, SIZE*ghostRows[i] + GRIDSTARTY, SIZE - 1, SIZE - 1);
+			}
 			if(curRows[i] >= 0){
 				g2d.setColor(Color.GRAY);
 				g2d.drawRect(SIZE*curCols[i] + GRIDSTARTX, SIZE*curRows[i] + GRIDSTARTY, SIZE - 1, SIZE - 1);
@@ -104,7 +119,11 @@ public class Tetrimino{
 
 	public void hold(){
 		//Removes the piece to be held 
+		positionGhost();
+		ghostRows = Arrays.copyOf(startRows[num], 4);
+
 		for(int i=0; i<4; i++){
+			game.repaint(SIZE*oldGhostCols[i] + GRIDSTARTX - 1, SIZE*oldGhostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
 			game.repaint(SIZE*curCols[i] + GRIDSTARTX - 1, SIZE*curRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);	
 		}
 		curRows = Arrays.copyOf(startRows[num], 4);
@@ -127,8 +146,11 @@ public class Tetrimino{
 		for(int i=0; i<4; i++){
 			curCols[i] += colShift;
 		}
+		positionGhost();
 		for(int i=0; i<4; i++){
-			game.repaint(SIZE*Math.min(curCols[i], curCols[i] - colShift) + GRIDSTARTX - 1, SIZE*curRows[i] + GRIDSTARTY - 1, 2*SIZE + 1, SIZE + 1);	
+			game.repaint(SIZE*oldGhostCols[i] + GRIDSTARTX - 1, SIZE*oldGhostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
+			game.repaint(SIZE*ghostCols[i] + GRIDSTARTX - 1, SIZE*ghostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
+			game.repaint(SIZE*Math.min(curCols[i], curCols[i] - colShift) + GRIDSTARTX - 1, SIZE*curRows[i] + GRIDSTARTY - 1, 2*SIZE + 1, SIZE + 1);
 		}
 		return true;
 	}
@@ -143,8 +165,35 @@ public class Tetrimino{
 		for(int i=0; i<4; i++){
 			curRows[i] += 1;
 		}
+		positionGhost();
 		for(int i=0; i<4; i++){
 			game.repaint(SIZE*curCols[i] + GRIDSTARTX - 1, SIZE*(curRows[i]-1) + GRIDSTARTY - 1, SIZE + 1, 2*SIZE + 1);	
+			game.repaint(SIZE*ghostCols[i] + GRIDSTARTX - 1, SIZE*ghostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
+		}
+		return true;
+	}
+
+	private void positionGhost(){
+
+		for(int i=0; i<4; i++){
+			oldGhostRows[i] = ghostRows[i];
+			oldGhostCols[i] = ghostCols[i];
+
+			ghostRows[i] = curRows[i];
+			ghostCols[i] = curCols[i];
+		}
+		while(moveGhostDown()){
+			for(int i=0; i<4; i++){
+				ghostRows[i] += 1;
+			}
+		}
+	}
+
+	private boolean moveGhostDown(){
+		for(int i=0; i<4; i++){
+			if(ghostRows[i] + 1 >= BOARDHEIGHT || (ghostRows[i] + 1 >= 0 && !game.emptySquare(ghostRows[i]+1, ghostCols[i]))){
+				return false;
+			}
 		}
 		return true;
 	}
@@ -162,6 +211,7 @@ public class Tetrimino{
 		double pivotX = getPivotX();
 		double pivotY = getPivotY();
 		double newPivotX, newPivotY;
+		int ghostDistance = ghostRows[0] - curRows[0];
 
 		int[] rotRows = new int[4];
 		int[] rotCols = new int[4];
@@ -193,10 +243,15 @@ public class Tetrimino{
 			if (squaresAvailable(kickCols, kickRows)){
 				curCols = kickCols;
 				curRows = kickRows;
+				positionGhost();
 				newPivotX = getPivotX();
 				newPivotY = getPivotY();
 				rotationState = (rotationState - sin + 4) % 4;
-				game.repaint(SIZE*(int)(Math.min(pivotX, newPivotX)-1.5) + GRIDSTARTX - 1, SIZE*(int)(Math.min(pivotY, newPivotY)-1.5) + GRIDSTARTY - 1, 4*SIZE + SIZE*(int)Math.abs(pivotX-newPivotX) + 1, 5*SIZE + SIZE*(int)Math.abs(pivotX-newPivotX) + 1);
+				for(int i=0; i<4; i++){
+					game.repaint(SIZE*oldGhostCols[i] + GRIDSTARTX - 1, SIZE*oldGhostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
+					game.repaint(SIZE*ghostCols[i] + GRIDSTARTX - 1, SIZE*ghostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
+				}
+				game.repaint(SIZE*(int)(Math.min(pivotX, newPivotX)-1.5) + GRIDSTARTX - 1, SIZE*(int)(Math.min(pivotY, newPivotY) - 1.5) + GRIDSTARTY - 1, 4*SIZE + SIZE*(int)Math.abs(pivotX-newPivotX) + 1, 5*SIZE + SIZE*(int)Math.abs(pivotX-newPivotX) + 1);
 				return true;
 			}
 		}
