@@ -80,6 +80,10 @@ public class Tetris extends JPanel{
 	private void bindKeyStrokes(){
 		//Binds keys to game actions
 		bindKeyStrokeTo("down.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), downAc());
+		// bindKeyStrokeTo("down.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), softDrop());
+		// bindKeyStrokeTo("down.released", KeyStroke.getKeyStorke(KeyEVENT.VK_DOWN, 0, true), stopSoftDrop());
+		// bindKeyStrokeTo("space.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), hardDrop());
+
 		bindKeyStrokeTo("right.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), sideAc(true));
 		bindKeyStrokeTo("left.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), sideAc(false));
 		bindKeyStrokeTo("up.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), rotateAc(true));
@@ -97,6 +101,36 @@ public class Tetris extends JPanel{
         im.put(keyStroke, name);
         am.put(name, action);
     }
+
+ //    private Action hardDrop(){
+	// //Starts hard drop
+	// return new AbstractAction(){
+	// 	@Override
+	// 	public void actionPerformed(ActionEvent ae){
+	// 		// timer.setDelay();
+	// 	}
+	// };
+ //    }
+
+ //    private Action softDrop(){
+	// //Starts soft drop
+	// return new AbstractAction(){
+	// 	@Override
+	// 	public void actionPerformed(ActionEvent ae){
+	// 		// timer.setDelay();
+	// 	}
+	// };
+ //    }
+
+ //    private Action stopSoftDrop(){
+	// //Stops soft drop
+	// return new AbstractAction(){
+	// 	@Override
+	// 	public void actionPerformed(ActionEvent ae){
+	// 		timer.setDelay(delay);
+	// 	}
+	// };
+ //    }
 
     private Action downAc(){
     	//When called, moves current piece down 1 row
@@ -144,6 +178,7 @@ public class Tetris extends JPanel{
     				heldPiece.hold();
     				makeNewPiece();
     				holding=true;
+    				repaint(HELDSTARTX, HELDSTARTY, HELDWIDTH - 1, HELDHEIGHT - 1);
     			}
     		}
     	};
@@ -157,8 +192,9 @@ public class Tetris extends JPanel{
 			if (currentPiece.isOutsideGrid()){
 				gameOver();
 			}else{
+				int tSpin = currentPiece.checkForTSpin();
 				addToGrid();
-				clearRows();
+				clearRows(tSpin);
 				levelUp();
 				makeNewPiece();
 				repaint(GRIDSTARTX, GRIDSTARTY, BOARDWIDTH*PIXELSIZE, BOARDHEIGHT*PIXELSIZE);
@@ -176,11 +212,13 @@ public class Tetris extends JPanel{
 		currentPiece.moveOut();
 	}
 
-	private void clearRows(){
+	private void clearRows(int tSpin){
 		/*Checks if rows are empty. If so, clears it and moves the rows above down
-		Then awards exp and points based on how many rows were cleared simultaneously*/
+		Then awards exp and points based on how many rows were cleared simultaneously and on whether a TSpin was performed*/
 		int rowsCleared = 0;
 		int expGained = 0;
+		int scoreGained = 0;
+
 		for (int row=0; row<BOARDHEIGHT; row++){
 			if(rowFull(row)){
 				rowsCleared++;
@@ -188,12 +226,22 @@ public class Tetris extends JPanel{
 			}
 		}
 		linesCleared += rowsCleared;
-		if(rowsCleared == 1) expGained = 1;
-		if(rowsCleared == 2) expGained = 3;
-		if(rowsCleared == 3) expGained = 5;
+
+		if(rowsCleared == 0 && tSpin == 2) expGained = 1;
+		if(rowsCleared == 1) expGained = tSpin == 2? 3 : 1;
+		if(rowsCleared == 2) expGained = tSpin == 2 ? 7 : 3;
+		if(rowsCleared == 3) expGained = tSpin == 2 ? 6 : 5;
 		if(rowsCleared == 4) expGained = 8;
+
+		if(rowsCleared == 1 || tSpin == 1) scoreGained = 1;
+		if(rowsCleared == 1 && tSpin == 1) scoreGained = 2;
+		if(tSpin == 2) scoreGained = 4;
+		if(rowsCleared == 2) scoreGained = tSpin == 2 ? 12 : 3;
+		if(rowsCleared == 3) scoreGained = tSpin == 2 ? 16 : 5;
+		if(rowsCleared == 4 || (rowsCleared == 1 && tSpin == 2)) scoreGained = 8;
+
 		exp += expGained;
-		score += expGained*100*level;
+		score += scoreGained*100*level;
 	}
 
 	private boolean rowFull(int row){
@@ -348,4 +396,4 @@ public class Tetris extends JPanel{
 		JOptionPane.showMessageDialog(this, "Lines Cleared: " + score, "Game Over", JOptionPane.YES_NO_OPTION);
 		System.exit(ABORT);
 	}
-}
+}	
