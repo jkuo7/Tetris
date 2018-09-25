@@ -21,12 +21,16 @@ public class Tetrimino{
 	//Stores the locations of the piece's ghost
 	private int[] ghostRows = {-1,-1,-1,-1};
 	private int[] ghostCols = {3, 4, 5, 6};
-
+	
+	//Stores the last locations of the piece's ghost (before movement)
 	private int[] oldGhostRows = {-1,-1,-1,-1};
 	private int[] oldGhostCols = {3, 4, 5, 6};
 
 	//Stores the piece's current rotation state (0, 1, 2, 3), increasing for clockwise, decreasing for counterclockwise
 	private int rotationState = 0;
+
+	//Stores whether the last successful move was rotation
+	private boolean justRotated = false;
 
 	private static int [] outSpaces = {21,21,21,21};
 
@@ -56,7 +60,7 @@ public class Tetrimino{
 	public Tetrimino(Tetris game){
 		this.game = game;
 		num = (int)(Math.random() * 7);
-		// num = 3;
+		// num = 5;
 		color = pieces[num];
 		curRows = Arrays.copyOf(startRows[num], 4);
 		curCols = Arrays.copyOf(startCols[num], 4);
@@ -134,10 +138,8 @@ public class Tetrimino{
 		/*Moves piece to the side 1 column, if possible
 		If right is true, moves to the right.
 		Else, moves to the left*/
-		int colShift = -1;
-		if(right){
-			colShift= 1;
-		}
+		int colShift = right ? 1 : -1;
+
 		for(int i=0; i<4; i++){
 			if(curCols[i] + colShift >= BOARDWIDTH || curCols[i] + colShift < 0  || (curRows[i] >= 0 && !game.emptySquare(curRows[i], curCols[i] + colShift))){
 				return false;
@@ -146,6 +148,7 @@ public class Tetrimino{
 		for(int i=0; i<4; i++){
 			curCols[i] += colShift;
 		}
+		justRotated = false;
 		positionGhost();
 		for(int i=0; i<4; i++){
 			game.repaint(SIZE*oldGhostCols[i] + GRIDSTARTX - 1, SIZE*oldGhostRows[i] + GRIDSTARTY - 1, SIZE + 1, SIZE + 1);
@@ -165,6 +168,7 @@ public class Tetrimino{
 		for(int i=0; i<4; i++){
 			curRows[i] += 1;
 		}
+		justRotated = false;
 		positionGhost();
 		for(int i=0; i<4; i++){
 			game.repaint(SIZE*curCols[i] + GRIDSTARTX - 1, SIZE*(curRows[i]-1) + GRIDSTARTY - 1, SIZE + 1, 2*SIZE + 1);	
@@ -174,7 +178,7 @@ public class Tetrimino{
 	}
 
 	private void positionGhost(){
-
+		// Stores the ghost's last location, then gets the ghost's new position
 		for(int i=0; i<4; i++){
 			oldGhostRows[i] = ghostRows[i];
 			oldGhostCols[i] = ghostCols[i];
@@ -190,6 +194,7 @@ public class Tetrimino{
 	}
 
 	private boolean moveGhostDown(){
+		//Returns whether the ghost can still be moved down
 		for(int i=0; i<4; i++){
 			if(ghostRows[i] + 1 >= BOARDHEIGHT || (ghostRows[i] + 1 >= 0 && !game.emptySquare(ghostRows[i]+1, ghostCols[i]))){
 				return false;
@@ -243,6 +248,7 @@ public class Tetrimino{
 			if (squaresAvailable(kickCols, kickRows)){
 				curCols = kickCols;
 				curRows = kickRows;
+				justRotated = true;
 				positionGhost();
 				newPivotX = getPivotX();
 				newPivotY = getPivotY();
@@ -261,11 +267,16 @@ public class Tetrimino{
 	public boolean squaresAvailable(int[] cols, int[]rows){
 		//Checks whether the attempted rotation is valid, i.e. that the squares are empty
 		for(int i=0; i<4; i++){
-			if(cols[i] < 0 || cols[i]>= BOARDWIDTH || rows[i] < 0 || rows[i]>= BOARDHEIGHT || !game.emptySquare(rows[i], cols[i])){
+			if(squareFilled(cols[i], rows[i])){
 				return false;
 			}
 		}
 		return true;
+	}
+
+	private boolean squareFilled(int col, int row){
+		//Checks whether the given square is filled (or outside of the play area)
+		return col < 0 || col >= BOARDWIDTH || row < 0 || row >= BOARDHEIGHT || !game.emptySquare(row, col);
 	}
 
 	public void moveOut(){
@@ -277,8 +288,8 @@ public class Tetrimino{
 
 	public boolean isOutsideGrid(){
 		//Checks whether any parts of the piece are left above the game board
-		for(int i=0; i<4;i++){
-			if(curRows[i]<0){
+		for(int row : curRows){
+			if(row<0){
 				return true;
 			}
 		}
@@ -308,4 +319,34 @@ public class Tetrimino{
 			return curRows[1] + 0.5;	
 		}
 	}
+
+	public int checkForTSpin(){
+		//Return 2 for T-spin, 1 for T-spin Mini, 0 for neither
+		if(!color.equals(violet) || !justRotated){
+			return 0;
+		}
+		int pointX1 = rotationState % 2 == 0 ? curCols[2] - 1 : curCols[2];
+		int pointY1 = rotationState % 2 == 0 ? curRows[2] : curRows[2] - 1;
+		int pointX2 = rotationState % 2 == 0 ? curCols[2] + 1 : curCols[2]; 
+		int pointY2 = rotationState % 2 == 0 ? curRows[2] : curRows[2] + 1;
+
+		int nonPointX3 = 2*curCols[1] - pointX1;
+		int nonPointY3 = 2*curRows[1] - pointY1;
+		int nonPointX4 = 2*curCols[1] - pointX2;
+		int nonPointY4 = 2*curRows[1] - pointY2;
+
+		int backPointX5 = 2*curCols[1] - curCols[2];
+		int backPointY5 = 2*curRows[1] - curRows[2];
+
+		if(squareFilled(pointX1, pointY1) && squareFilled(pointX2, pointY2) && (squareFilled(nonPointX3, nonPointY3) || squareFilled(nonPointX4, nonPointY4))){
+			if(squareFilled(backPointX5, backPointY5)){
+				return 2;
+			}
+			return 1;
+		}else if ((squareFilled(pointX1, pointY1) || squareFilled(pointX2, pointY2)) && squareFilled(nonPointX3, nonPointY3) && squareFilled(nonPointX4, nonPointY4)){
+			return 1;
+		}
+		return 0;
+	}
 }
+
