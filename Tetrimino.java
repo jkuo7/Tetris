@@ -6,6 +6,12 @@ public class Tetrimino{
 	private Color color;
 	private static Color violet = new Color(128,0,128);
 	private static Color[] pieces = {Color.CYAN, Color.BLUE, Color.ORANGE, Color.YELLOW, Color.GREEN, violet, Color.RED};
+
+	//Grabbag: A bag containing the 7 pieces, which are taken out randomly, then reshuffled after all 7 have been taken out	
+	private static int[] grabbag = {0, 1, 2, 3, 4, 5, 6};
+	//Indicates next piece to pull out
+	private static int gbIndex = 0;
+	//The current piece's number
 	private int num;
 
 	private Tetris game;
@@ -59,11 +65,32 @@ public class Tetrimino{
 
 	public Tetrimino(Tetris game){
 		this.game = game;
-		num = (int)(Math.random() * 7);
+		grabBag();
+		num = grabbag[gbIndex];
+		gbIndex = (gbIndex + 1) % 7;
 		// num = 5;
 		color = pieces[num];
 		curRows = Arrays.copyOf(startRows[num], 4);
 		curCols = Arrays.copyOf(startCols[num], 4);
+	}
+
+	private static void grabBag(){
+		//Shuffles the bag after we've pulled all 7 pieces out
+		if(gbIndex == 0){
+			shuffleArray(grabbag);
+		}
+	}
+
+	private static void shuffleArray(int[] array){
+		//Randomly shuffles a given int array
+	    int index, temp;
+	    Random random = new Random();
+	    for (int i = array.length - 1; i > 0; i--){
+	        index = random.nextInt(i + 1);
+	        temp = array[index];
+	        array[index] = array[i];
+	        array[i] = temp;
+	    }
 	}
 
 	public void makeCurrent(){
