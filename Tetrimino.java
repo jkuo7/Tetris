@@ -68,7 +68,6 @@ public class Tetrimino{
 		grabBag();
 		num = grabbag[gbIndex];
 		gbIndex = (gbIndex + 1) % 7;
-		// num = (int)(Math.random() * 7);
 		// num = 5;
 		color = pieces[num];
 		curRows = Arrays.copyOf(startRows[num], 4);
