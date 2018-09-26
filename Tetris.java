@@ -374,8 +374,7 @@ public class Tetris extends JPanel{
 					g2d.drawRect(PIXELSIZE*col + GRIDSTARTX, PIXELSIZE*row + GRIDSTARTY, PIXELSIZE - 1, PIXELSIZE - 1);
 					g2d.setColor(grid[row][col]);
 					g2d.fillRect(PIXELSIZE*col + GRIDSTARTX + 1, PIXELSIZE*row + GRIDSTARTY + 1, PIXELSIZE - 2, PIXELSIZE - 2);
-				}
-				else{
+				}else{
 					g2d.setColor(Color.BLACK);
 					g2d.fillRect(PIXELSIZE*col + GRIDSTARTX, PIXELSIZE*row + GRIDSTARTY, PIXELSIZE, PIXELSIZE);
 				}
@@ -392,7 +391,6 @@ public class Tetris extends JPanel{
 		FontMetrics fm = g2d.getFontMetrics();
 		g2d.drawString("NEXT", NEXTSTARTX + (NEXTWIDTH - fm.stringWidth("NEXT"))/2, NEXTSTARTY - fm.getHeight() + fm.getAscent());
 		g2d.drawRect(NEXTSTARTX, NEXTSTARTY, NEXTWIDTH - 1, NEXTHEIGHT - 1);
-		// g2d.fillRect(NEXTSTARTX, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/4, NEXTWIDTH, NEXTSIZE/2);
 		g2d.drawLine(NEXTSTARTX, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/2, NEXTSTARTX + NEXTWIDTH - 1, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/2);
 
 
