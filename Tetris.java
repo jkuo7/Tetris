@@ -211,13 +211,13 @@ public class Tetris extends JPanel{
     	If the game isn't over, stores the piece in the grid, checks for cleared rows, and starts the next piece*/
 		if(!currentPiece.moveDown()){
 			if(inSoftDrop || inHardDrop){
+				timer.setDelay(delay);
 				score += inHardDrop ? 2*Math.min(rowsDropped, 20) : Math.min(rowsDropped, 20);
 				inSoftDrop = false;
 				inHardDrop = false;
 				rowsDropped = 0;
-				timer.setDelay(delay);
 				repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
-				timer.restart();
+				timer.restart();				
 			}
 			if (currentPiece.isOutsideGrid()){
 				gameOver();
