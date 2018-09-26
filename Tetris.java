@@ -41,9 +41,16 @@ public class Tetris extends JPanel{
 
 	private int score = 0;
 	private int linesCleared = 0;
+	private int combo = -1;
+
 	private int level = 1;
 	private int exp = 0;
 	private int delay = 1000;
+
+	private int rowsDropped = 0;
+
+	private boolean inHardDrop = false;
+	private boolean inSoftDrop = false;
 
 	Color [][] grid = new Color[BOARDHEIGHT][BOARDWIDTH];
 	private Timer timer;
@@ -74,15 +81,15 @@ public class Tetris extends JPanel{
 	        		moveCurrentDown();
   			}
 		});
+		timer.setInitialDelay(500);
 		timer.start();
 	}
 
 	private void bindKeyStrokes(){
 		//Binds keys to game actions
-		bindKeyStrokeTo("down.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), downAc());
-		// bindKeyStrokeTo("down.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), softDrop());
-		// bindKeyStrokeTo("down.released", KeyStroke.getKeyStorke(KeyEVENT.VK_DOWN, 0, true), stopSoftDrop());
-		// bindKeyStrokeTo("space.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), hardDrop());
+		bindKeyStrokeTo("down.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), softDrop());
+		bindKeyStrokeTo("down.released", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0, true), stopSoftDrop());
+		bindKeyStrokeTo("space.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), hardDrop());
 
 		bindKeyStrokeTo("right.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), sideAc(true));
 		bindKeyStrokeTo("left.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), sideAc(false));
@@ -102,44 +109,50 @@ public class Tetris extends JPanel{
         am.put(name, action);
     }
 
- //    private Action hardDrop(){
-	// //Starts hard drop
-	// return new AbstractAction(){
-	// 	@Override
-	// 	public void actionPerformed(ActionEvent ae){
-	// 		// timer.setDelay();
-	// 	}
-	// };
- //    }
+    private Action hardDrop(){
+		//Starts hard drop
+		return new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent ae){
+				if(!inHardDrop){
+					if(inSoftDrop){
+						inSoftDrop = false;
+						score += Math.min(rowsDropped, 20);
+					}
+					inHardDrop = true;
+					timer.setDelay(1);
+				}
+			}
+		};
+    }
 
- //    private Action softDrop(){
-	// //Starts soft drop
-	// return new AbstractAction(){
-	// 	@Override
-	// 	public void actionPerformed(ActionEvent ae){
-	// 		// timer.setDelay();
-	// 	}
-	// };
- //    }
+    private Action softDrop(){
+		//Starts soft drop
+		return new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent ae){
+				if(!inHardDrop){
+					inSoftDrop = true;
+					timer.setDelay(50);
+				}
+			}
+		};
+    }
 
- //    private Action stopSoftDrop(){
-	// //Stops soft drop
-	// return new AbstractAction(){
-	// 	@Override
-	// 	public void actionPerformed(ActionEvent ae){
-	// 		timer.setDelay(delay);
-	// 	}
-	// };
- //    }
-
-    private Action downAc(){
-    	//When called, moves current piece down 1 row
-    	return new AbstractAction(){
-        	@Override
-        	public void actionPerformed(ActionEvent ae){
-        		moveCurrentDown();
-        	}
-        };
+    private Action stopSoftDrop(){
+		//Stops soft drop
+		return new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent ae){
+				if(inSoftDrop){
+					inSoftDrop = false;
+					score += Math.min(rowsDropped, 20);
+					repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
+					rowsDropped = 0;
+					timer.setDelay(delay);
+				}
+			}
+		};
     }
 
     private Action sideAc(boolean right){
@@ -149,7 +162,11 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
         	@Override
         	public void actionPerformed(ActionEvent ae){
-        		currentPiece.moveSide(right);
+			if(!inSoftDrop){
+        			if(currentPiece.moveSide(right)){
+					timer.restart();
+				}
+			}
         	}
         };
     }
@@ -161,7 +178,11 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
         	@Override
         	public void actionPerformed(ActionEvent ae){
-        		currentPiece.rotate(clockwise);
+			if(!inSoftDrop){
+        			if(currentPiece.rotate(clockwise)){
+					timer.restart();
+				}
+			}
         	}
         };
     }
@@ -173,7 +194,7 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
     		@Override
     		public void actionPerformed(ActionEvent ae){
-    			if(!holding){
+    			if(!holding && !inHardDrop && !inSoftDrop){
     				heldPiece = currentPiece;
     				heldPiece.hold();
     				makeNewPiece();
@@ -189,6 +210,15 @@ public class Tetris extends JPanel{
     	If it cannot, checks to see if the game is over
     	If the game isn't over, stores the piece in the grid, checks for cleared rows, and starts the next piece*/
 		if(!currentPiece.moveDown()){
+			if(inSoftDrop || inHardDrop){
+				score += inHardDrop ? 2*Math.min(rowsDropped, 20) : Math.min(rowsDropped, 20);
+				inSoftDrop = false;
+				inHardDrop = false;
+				rowsDropped = 0;
+				timer.setDelay(delay);
+				repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
+				timer.restart();
+			}
 			if (currentPiece.isOutsideGrid()){
 				gameOver();
 			}else{
@@ -199,6 +229,8 @@ public class Tetris extends JPanel{
 				makeNewPiece();
 				repaint(GRIDSTARTX, GRIDSTARTY, BOARDWIDTH*PIXELSIZE, BOARDHEIGHT*PIXELSIZE);
 			}
+		}else if(inSoftDrop || inHardDrop){
+			rowsDropped ++;
 		}
     }
 
@@ -228,20 +260,27 @@ public class Tetris extends JPanel{
 		linesCleared += rowsCleared;
 
 		if(rowsCleared == 0 && tSpin == 2) expGained = 1;
-		if(rowsCleared == 1) expGained = tSpin == 2? 3 : 1;
+		if(rowsCleared == 1) expGained = tSpin == 2 ? 3 : 1;
 		if(rowsCleared == 2) expGained = tSpin == 2 ? 7 : 3;
 		if(rowsCleared == 3) expGained = tSpin == 2 ? 6 : 5;
 		if(rowsCleared == 4) expGained = 8;
 
-		if(rowsCleared == 1 || tSpin == 1) scoreGained = 1;
-		if(rowsCleared == 1 && tSpin == 1) scoreGained = 2;
+		if(rowsCleared == 1 && tSpin != 2) scoreGained = rowsCleared + tSpin;
 		if(tSpin == 2) scoreGained = 4;
 		if(rowsCleared == 2) scoreGained = tSpin == 2 ? 12 : 3;
 		if(rowsCleared == 3) scoreGained = tSpin == 2 ? 16 : 5;
 		if(rowsCleared == 4 || (rowsCleared == 1 && tSpin == 2)) scoreGained = 8;
+		
+		if(rowsCleared > 0){
+			combo++;
+			scoreGained += rowsCleared == 1 ? 20*combo*level : 50*combo*level;
+		}else{
+			combo = -1;
+		}
 
 		exp += expGained;
 		score += scoreGained*100*level;
+		repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
 	}
 
 	private boolean rowFull(int row){
@@ -289,12 +328,12 @@ public class Tetris extends JPanel{
 			nextPiece4 = nextPiece5;
 			nextPiece5 = nextPiece6;
 			nextPiece6 = new Tetrimino(this);
-			repaint(NEXTSTARTX, NEXTSTARTY, 6*NEXTSIZE, 22*NEXTSIZE);
+			repaint(NEXTSTARTX, NEXTSTARTY, NEXTWIDTH, NEXTHEIGHT);
 		}else{
 			currentPiece = heldPiece;
 			currentPiece.makeCurrent();
 			holding = false;
-			repaint(HELDSTARTX, HELDSTARTY, HELDWIDTH - 1, HELDHEIGHT - 1);
+			repaint(HELDSTARTX, HELDSTARTY, HELDWIDTH, HELDHEIGHT);
 		}
 	}
 
@@ -335,7 +374,8 @@ public class Tetris extends JPanel{
 					g2d.drawRect(PIXELSIZE*col + GRIDSTARTX, PIXELSIZE*row + GRIDSTARTY, PIXELSIZE - 1, PIXELSIZE - 1);
 					g2d.setColor(grid[row][col]);
 					g2d.fillRect(PIXELSIZE*col + GRIDSTARTX + 1, PIXELSIZE*row + GRIDSTARTY + 1, PIXELSIZE - 2, PIXELSIZE - 2);
-				}else{
+				}
+				else{
 					g2d.setColor(Color.BLACK);
 					g2d.fillRect(PIXELSIZE*col + GRIDSTARTX, PIXELSIZE*row + GRIDSTARTY, PIXELSIZE, PIXELSIZE);
 				}
@@ -352,6 +392,9 @@ public class Tetris extends JPanel{
 		FontMetrics fm = g2d.getFontMetrics();
 		g2d.drawString("NEXT", NEXTSTARTX + (NEXTWIDTH - fm.stringWidth("NEXT"))/2, NEXTSTARTY - fm.getHeight() + fm.getAscent());
 		g2d.drawRect(NEXTSTARTX, NEXTSTARTY, NEXTWIDTH - 1, NEXTHEIGHT - 1);
+		// g2d.fillRect(NEXTSTARTX, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/4, NEXTWIDTH, NEXTSIZE/2);
+		g2d.drawLine(NEXTSTARTX, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/2, NEXTSTARTX + NEXTWIDTH - 1, NEXTSTARTY + 3*NEXTSIZE + NEXTSIZE/2);
+
 
 		g2d.drawString("HELD", HELDSTARTX + (HELDWIDTH - fm.stringWidth("HELD"))/2, HELDSTARTY - fm.getHeight() + fm.getAscent());
 		g2d.drawRect(HELDSTARTX, HELDSTARTY, HELDWIDTH - 1, HELDHEIGHT - 1);		
