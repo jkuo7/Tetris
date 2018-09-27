@@ -46,6 +46,7 @@ public class Tetris extends JPanel{
 	private int score = 0;
 	private int linesCleared = 0;
 	private int combo = -1;
+	private int b2b = 0;
 
 	private int level = 1;
 	private int exp = 0;
@@ -310,18 +311,51 @@ public class Tetris extends JPanel{
 		}
 		linesCleared += rowsCleared;
 
-		if(rowsCleared == 0 && tSpin == 2) expGained = 1;
-		if(rowsCleared == 1) expGained = tSpin == 2 ? 3 : 1;
-		if(rowsCleared == 2) expGained = tSpin == 2 ? 7 : 3;
-		if(rowsCleared == 3) expGained = tSpin == 2 ? 6 : 5;
-		if(rowsCleared == 4) expGained = 8;
-
-		if(rowsCleared == 1 && tSpin != 2) scoreGained = rowsCleared + tSpin;
-		if(tSpin == 2) scoreGained = 4;
-		if(rowsCleared == 2) scoreGained = tSpin == 2 ? 12 : 3;
-		if(rowsCleared == 3) scoreGained = tSpin == 2 ? 16 : 5;
-		if(rowsCleared == 4 || (rowsCleared == 1 && tSpin == 2)) scoreGained = 8;
-		scoreGained *= 100*level;		
+		switch(tSpin + rowsCleared){
+			case 1:
+				scoreGained = 100;
+				expGained = 1;
+				break;
+			case 2: case 12:
+				scoreGained = 300;
+				expGained = 3;
+				break;
+			case 3: case 13:
+				scoreGained = 500;
+				expGained = 5;
+				break;
+			case 4:
+				scoreGained = b2b == 4 ? 1200 : 800;
+				expGained = 8;
+				break;
+			case 10:
+				scoreGained = b2b == 10? 150 : 100;
+				break;
+			case 11:
+				scoreGained = 200;
+				expGained = 1;
+				break;
+			case 20:
+				scoreGained = 400;
+				expGained = 1;
+				break;
+			case 21:
+				scoreGained = b2b == 21 ? 1200 : 800;
+				expGained = 3;
+				break;
+			case 22:
+				scoreGained = b2b == 22 ? 1800 : 1200;
+				expGained = 7;
+				break;
+			case 23:
+				scoreGained = b2b == 23 ? 2400 : 1600;
+				expGained = 6;
+				break;
+			default:
+				break;
+		}
+		b2b = rowsCleared == 0 ? b2b : tSpin + rowsCleared;
+		scoreGained *= level;		
 
 		if(rowsCleared > 0){
 			combo++;
@@ -332,7 +366,7 @@ public class Tetris extends JPanel{
 
 		exp += expGained;
 		score += scoreGained;
-		repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
+		repaint(POINTSX, POINTSY, POINTSWIDTH, POINTSHEIGHT);
 	}
 
 	private boolean rowFull(int row){

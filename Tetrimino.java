@@ -68,7 +68,7 @@ public class Tetrimino{
 		grabBag();
 		num = grabbag[gbIndex];
 		gbIndex = (gbIndex + 1) % 7;
-		// num = 5;
+		// num = 0;
 		color = pieces[num];
 		curRows = Arrays.copyOf(startRows[num], 4);
 		curCols = Arrays.copyOf(startCols[num], 4);
@@ -348,7 +348,7 @@ public class Tetrimino{
 	}
 
 	public int checkForTSpin(){
-		//Return 2 for T-spin, 1 for T-spin Mini, 0 for neither
+		//Return 20 for T-spin, 10 for T-spin Mini, 0 for neither
 		if(!color.equals(violet) || !justRotated){
 			return 0;
 		}
@@ -367,11 +367,11 @@ public class Tetrimino{
 
 		if(squareFilled(pointX1, pointY1) && squareFilled(pointX2, pointY2) && (squareFilled(nonPointX3, nonPointY3) || squareFilled(nonPointX4, nonPointY4))){
 			if(squareFilled(backPointX5, backPointY5)){
-				return 2;
+				return 20;
 			}
-			return 1;
+			return 10;
 		}else if ((squareFilled(pointX1, pointY1) || squareFilled(pointX2, pointY2)) && squareFilled(nonPointX3, nonPointY3) && squareFilled(nonPointX4, nonPointY4)){
-			return 1;
+			return 10;
 		}
 		return 0;
 	}
