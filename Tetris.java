@@ -39,6 +39,10 @@ public class Tetris extends JPanel{
 	private static final int GAMEWIDTH = NEXTSTARTX + NEXTWIDTH + PIXELSIZE;
 	private static final int GAMEHEIGHT = 600;
 
+	private int countdown = 0;
+	private boolean gameStarted = false;
+	private boolean flicker = true;
+
 	private int score = 0;
 	private int linesCleared = 0;
 	private int combo = -1;
@@ -57,7 +61,7 @@ public class Tetris extends JPanel{
 
 	public Tetris(){
 		this.setBackground(new Color(220, 243, 255));
-		bindKeyStrokes();
+
 
 		//Initiates the game grid
 		for (int col=0; col<BOARDWIDTH; col++){
@@ -75,10 +79,55 @@ public class Tetris extends JPanel{
 		nextPiece5 = new Tetrimino(this);
 		nextPiece6 = new Tetrimino(this);
 
+		bindKeyStrokeTo("enter.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), countDownAc());
+
+		timer = new Timer(750, new ActionListener(){
+			@Override
+  			public void actionPerformed(ActionEvent e) {
+	        		repaint();
+  			}
+		});
+		timer.start();
+	}
+
+	private Action countDownAc(){
+		//Starts countdown before game beings
+		return new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent ae){
+				if(!gameStarted){					
+					getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), null);
+					getActionMap().put("enter.pressed", null);
+					countDown();
+				}
+			}
+		};
+	}
+
+	private void countDown(){
+		// Counts down to game starting
+		countdown = 3;
+		timer = new Timer(1000, new ActionListener(){
+			@Override
+  			public void actionPerformed(ActionEvent e) {
+		       	repaint();
+				countdown--;
+				if(countdown == 0){
+					startGame();
+				}
+  			}
+		});
+		timer.start();
+	}
+
+	private void startGame(){
+		//Starts the game
+		gameStarted = true;
+		bindKeyStrokes();
 		timer = new Timer(delay, new ActionListener(){
 			@Override
   			public void actionPerformed(ActionEvent e) {
-	        		moveCurrentDown();
+		       		moveCurrentDown();
   			}
 		});
 		timer.setInitialDelay(500);
@@ -99,6 +148,8 @@ public class Tetris extends JPanel{
 		bindKeyStrokeTo("Z.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_Z, 0), rotateAc(false));
 		bindKeyStrokeTo("C.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_C, 0), holdAc());
 		bindKeyStrokeTo("shift.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), holdAc());
+
+		
 	}
 
     private void bindKeyStrokeTo(String name, KeyStroke keyStroke, Action action) {
@@ -270,7 +321,8 @@ public class Tetris extends JPanel{
 		if(rowsCleared == 2) scoreGained = tSpin == 2 ? 12 : 3;
 		if(rowsCleared == 3) scoreGained = tSpin == 2 ? 16 : 5;
 		if(rowsCleared == 4 || (rowsCleared == 1 && tSpin == 2)) scoreGained = 8;
-		
+		scoreGained *= 100*level;		
+
 		if(rowsCleared > 0){
 			combo++;
 			scoreGained += rowsCleared == 1 ? 20*combo*level : 50*combo*level;
@@ -279,7 +331,7 @@ public class Tetris extends JPanel{
 		}
 
 		exp += expGained;
-		score += scoreGained*100*level;
+		score += scoreGained;
 		repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
 	}
 
@@ -410,9 +462,68 @@ public class Tetris extends JPanel{
 		g2d.drawString("" + level, POINTSX + POINTSWIDTH - fm.stringWidth("" + level) - 2, POINTSY + 1 + 6*textHeight - textAscent/2);
 
 		paintGrid(g2d);
-		currentPiece.paint(g2d);
-		paintNextPieces(g2d);
-		paintHeldPiece(g2d);
+		if(gameStarted){
+			currentPiece.paint(g2d);
+			paintNextPieces(g2d);
+			paintHeldPiece(g2d);
+		}else if(countdown !=0){
+			g2d.setColor(Color.WHITE);
+			g2d.setFont(new Font("Consolas", Font.BOLD, 60));
+			fm = g2d.getFontMetrics();
+			String time = countdown + "";
+			g2d.drawString(time, GRIDSTARTX + (BOARDWIDTH*PIXELSIZE- fm.stringWidth(time))/2, GRIDSTARTY + 1 + fm.getHeight() - fm.getAscent()/2);
+		}else{
+			paintTitleScreen(g2d);
+		}
+	}
+
+	private void paintTitleScreen(Graphics2D g2d){
+		//Paints the title screen
+		paintLogo(g2d);
+		if(flicker){
+			paintControls(g2d);
+		}
+		flicker = !flicker;
+	}
+
+	private void paintLogo(Graphics2D g2d){
+		//Paints the TETRIS logo
+		g2d.setFont(new Font("Consolas", Font.BOLD, 73));
+		FontMetrics fm = g2d.getFontMetrics();
+		int textHeight = fm.getHeight();
+		int textAscent = fm.getAscent();
+		g2d.setColor(Color.BLUE);
+		g2d.fillRect(GRIDSTARTX, GRIDSTARTY, BOARDWIDTH*PIXELSIZE, textHeight - 3*textAscent/8);
+		g2d.fillRect(GRIDSTARTX + BOARDWIDTH*PIXELSIZE/3, GRIDSTARTY + textHeight - 3*textAscent/8, BOARDWIDTH*PIXELSIZE/3, textHeight - 3*textAscent/8);
+		g2d.setColor(Color.RED);
+		g2d.drawString("T", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("TETRIS"))/2, GRIDSTARTY + textHeight - textAscent/2);
+		g2d.setColor(Color.ORANGE);
+		g2d.drawString("E", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("ETRIS") + fm.stringWidth("T"))/2, GRIDSTARTY + textHeight - textAscent/2);
+		g2d.setColor(Color.YELLOW);
+		g2d.drawString("T", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("TRIS") + fm.stringWidth("TE"))/2, GRIDSTARTY + textHeight - textAscent/2);
+		g2d.setColor(Color.GREEN);
+		g2d.drawString("R", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("RIS") + fm.stringWidth("TET"))/2, GRIDSTARTY + textHeight - textAscent/2);
+		g2d.setColor(Color.CYAN);
+		g2d.drawString("I", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("IS") + fm.stringWidth("TETR"))/2, GRIDSTARTY + textHeight - textAscent/2);
+		g2d.setColor(new Color(128,0,128));
+		g2d.drawString("S", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("S") + fm.stringWidth("TETRI"))/2, GRIDSTARTY + textHeight - textAscent/2);
+	}
+
+	private void paintControls(Graphics2D g2d){
+		//Paints controls on screen
+		g2d.setColor(Color.WHITE);
+		g2d.setFont(new Font("Consolas", Font.PLAIN, 15));
+		FontMetrics fm = g2d.getFontMetrics();
+		int startWidth = BOARDWIDTH*PIXELSIZE;
+		int startHeight = (BOARDHEIGHT*PIXELSIZE - fm.getHeight()) / 2 + fm.getAscent();
+		g2d.drawString("LEFT/RIGHT: Left/Right", GRIDSTARTX + (startWidth - fm.stringWidth("LEFT/RIGHT: Left/Right"))/2, startHeight - 40);
+		g2d.drawString("DOWN: Soft Drop", GRIDSTARTX + (startWidth - fm.stringWidth("DOWN: Soft Drop"))/2, startHeight);
+		g2d.drawString("SPACE: Hard Drop", GRIDSTARTX + (startWidth - fm.stringWidth("SPACE: Hard Drop"))/2, startHeight + 40);
+
+		g2d.drawString("UP/X: Clockwise", GRIDSTARTX + (startWidth - fm.stringWidth("UP/X: Clockwise"))/2, startHeight + 80);
+		g2d.drawString("Z/CTRL: Counterclockwise", GRIDSTARTX + (startWidth - fm.stringWidth("Z/CTRL: Counterclockwise"))/2, startHeight + 120);
+		g2d.drawString("C/SHIFT: Hold", GRIDSTARTX + (startWidth - fm.stringWidth("C/SHIFT: Hold"))/2, startHeight + 160);
+		g2d.drawString("-Press Enter to Start-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press Enter to Start-"))/2, startHeight + 200);
 	}
 
 	public static void main(String[] args){
