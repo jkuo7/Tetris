@@ -41,6 +41,7 @@ public class Tetris extends JPanel{
 
 	private int countdown = 0;
 	private boolean gameStarted = false;
+	private boolean paused = false;
 	private boolean flicker = true;
 
 	private int score = 0;
@@ -107,7 +108,8 @@ public class Tetris extends JPanel{
 
 	private void countDown(){
 		// Counts down to game starting
-		countdown = 3;
+		countdown = 4;
+		timer.stop();
 		timer = new Timer(1000, new ActionListener(){
 			@Override
   			public void actionPerformed(ActionEvent e) {
@@ -118,6 +120,7 @@ public class Tetris extends JPanel{
 				}
   			}
 		});
+		timer.setInitialDelay(0);
 		timer.start();
 	}
 
@@ -125,6 +128,7 @@ public class Tetris extends JPanel{
 		//Starts the game
 		gameStarted = true;
 		bindKeyStrokes();
+		timer.stop();
 		timer = new Timer(delay, new ActionListener(){
 			@Override
   			public void actionPerformed(ActionEvent e) {
@@ -132,6 +136,33 @@ public class Tetris extends JPanel{
   			}
 		});
 		timer.setInitialDelay(500);
+		timer.start();
+	}
+
+	private Action pauseUnpause(){
+		//Pauses game
+		return new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent ae){
+				paused = !paused;
+				if(paused){
+					gameStarted = false;
+					pauseGame();
+				}else{
+					countDown();
+				}
+			}
+		};
+	}
+
+	private void pauseGame(){
+		timer.stop();
+		timer = new Timer(750, new ActionListener(){
+			@Override
+  			public void actionPerformed(ActionEvent e) {
+	        		repaint();
+  			}
+		});
 		timer.start();
 	}
 
@@ -150,7 +181,8 @@ public class Tetris extends JPanel{
 		bindKeyStrokeTo("C.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_C, 0), holdAc());
 		bindKeyStrokeTo("shift.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.SHIFT_DOWN_MASK), holdAc());
 
-		
+		bindKeyStrokeTo("Esc.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), pauseUnpause());
+		bindKeyStrokeTo("F1.pressed", KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), pauseUnpause());
 	}
 
     private void bindKeyStrokeTo(String name, KeyStroke keyStroke, Action action) {
@@ -166,7 +198,7 @@ public class Tetris extends JPanel{
 		return new AbstractAction(){
 			@Override
 			public void actionPerformed(ActionEvent ae){
-				if(!inHardDrop){
+				if(!inHardDrop && !paused){
 					if(inSoftDrop){
 						inSoftDrop = false;
 						score += Math.min(rowsDropped, 20);
@@ -183,7 +215,7 @@ public class Tetris extends JPanel{
 		return new AbstractAction(){
 			@Override
 			public void actionPerformed(ActionEvent ae){
-				if(!inHardDrop){
+				if(!inHardDrop && !paused){
 					inSoftDrop = true;
 					timer.setDelay(50);
 				}
@@ -196,7 +228,7 @@ public class Tetris extends JPanel{
 		return new AbstractAction(){
 			@Override
 			public void actionPerformed(ActionEvent ae){
-				if(inSoftDrop){
+				if(inSoftDrop && !paused){
 					inSoftDrop = false;
 					score += Math.min(rowsDropped, 20);
 					repaint(POINTSX, POINTSY, POINTSWIDTH - 1, POINTSHEIGHT);
@@ -214,7 +246,7 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
         	@Override
         	public void actionPerformed(ActionEvent ae){
-			if(!inSoftDrop){
+			if(!inSoftDrop && !paused){
         			if(currentPiece.moveSide(right)){
 					timer.restart();
 				}
@@ -230,7 +262,7 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
         	@Override
         	public void actionPerformed(ActionEvent ae){
-			if(!inSoftDrop){
+			if(!inSoftDrop && !paused){
         			if(currentPiece.rotate(clockwise)){
 					timer.restart();
 				}
@@ -246,7 +278,7 @@ public class Tetris extends JPanel{
     	return new AbstractAction(){
     		@Override
     		public void actionPerformed(ActionEvent ae){
-    			if(!holding && !inHardDrop && !inSoftDrop){
+    			if(!holding && !inHardDrop && !inSoftDrop && !paused){
     				heldPiece = currentPiece;
     				heldPiece.hold();
     				makeNewPiece();
@@ -455,7 +487,7 @@ public class Tetris extends JPanel{
 		//Paints the game grid (the pieces that have already been place)
 		for (int col=0; col<BOARDWIDTH; col++){
 			for (int row=0; row<BOARDHEIGHT; row++){
-				if(!grid[row][col].equals(Color.BLACK)){
+				if(!grid[row][col].equals(Color.BLACK) && gameStarted){
 					g2d.setColor(Color.GRAY);
 					g2d.drawRect(PIXELSIZE*col + GRIDSTARTX, PIXELSIZE*row + GRIDSTARTY, PIXELSIZE - 1, PIXELSIZE - 1);
 					g2d.setColor(grid[row][col]);
@@ -496,10 +528,12 @@ public class Tetris extends JPanel{
 		g2d.drawString("" + level, POINTSX + POINTSWIDTH - fm.stringWidth("" + level) - 2, POINTSY + 1 + 6*textHeight - textAscent/2);
 
 		paintGrid(g2d);
-		if(gameStarted){
+		if(gameStarted && !paused){
 			currentPiece.paint(g2d);
 			paintNextPieces(g2d);
 			paintHeldPiece(g2d);
+		}else if(paused){
+			paintPauseScreen(g2d);
 		}else if(countdown !=0){
 			g2d.setColor(Color.WHITE);
 			g2d.setFont(new Font("Consolas", Font.BOLD, 60));
@@ -557,7 +591,17 @@ public class Tetris extends JPanel{
 		g2d.drawString("UP/X: Clockwise", GRIDSTARTX + (startWidth - fm.stringWidth("UP/X: Clockwise"))/2, startHeight + 80);
 		g2d.drawString("Z/CTRL: Counterclockwise", GRIDSTARTX + (startWidth - fm.stringWidth("Z/CTRL: Counterclockwise"))/2, startHeight + 120);
 		g2d.drawString("C/SHIFT: Hold", GRIDSTARTX + (startWidth - fm.stringWidth("C/SHIFT: Hold"))/2, startHeight + 160);
-		g2d.drawString("-Press Enter to Start-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press Enter to Start-"))/2, startHeight + 200);
+		if(!paused){
+			g2d.drawString("-Press Enter to Start-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press Enter to Start-"))/2, startHeight + 200);
+		}
+	}
+
+	private void paintPauseScreen(Graphics2D g2d){
+		g2d.setFont(new Font("Consolas", Font.BOLD, 60));
+		FontMetrics fm = g2d.getFontMetrics();
+		g2d.setColor(Color.WHITE);
+		g2d.drawString("PAUSE", GRIDSTARTX + (BOARDWIDTH*PIXELSIZE - fm.stringWidth("PAUSE"))/2, GRIDSTARTY + fm.getHeight() - fm.getAscent()/2);
+		paintControls(g2d);
 	}
 
 	public static void main(String[] args){
