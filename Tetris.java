@@ -205,7 +205,7 @@ public class Tetris extends JPanel{
 					}
 					inHardDrop = true;
 					timer.setDelay(1);
-					timer.setInitialDelay(1);
+					timer.setInitialDelay(0);
 					timer.restart();
 				}
 			}
@@ -217,9 +217,11 @@ public class Tetris extends JPanel{
 		return new AbstractAction(){
 			@Override
 			public void actionPerformed(ActionEvent ae){
-				if(!inHardDrop && !paused){
+				if(!inHardDrop && !paused && !inSoftDrop){
 					inSoftDrop = true;
 					timer.setDelay(50);
+					timer.setInitialDelay(50);
+					timer.restart();
 				}
 			}
 		};
@@ -630,7 +632,7 @@ public class Tetris extends JPanel{
 
 	private void gameOver(){
 		//Displays game over message
-		JOptionPane.showMessageDialog(this, "Lines Cleared: " + score, "Game Over", JOptionPane.YES_NO_OPTION);
+		JOptionPane.showMessageDialog(this, "Score: " + score + "\nLines Cleared: " + linesCleared, "Game Over", JOptionPane.YES_NO_OPTION);
 		System.exit(ABORT);
 	}
 }	
