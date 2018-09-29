@@ -140,13 +140,12 @@ public class Tetris extends JPanel{
 	}
 
 	private Action pauseUnpause(){
-		//Pauses game
+		//Pauses or unpauses the game
 		return new AbstractAction(){
 			@Override
 			public void actionPerformed(ActionEvent ae){
 				paused = !paused;
 				if(paused){
-					gameStarted = false;
 					pauseGame();
 				}else{
 					countDown();
@@ -156,6 +155,7 @@ public class Tetris extends JPanel{
 	}
 
 	private void pauseGame(){
+		//Pauses the game
 		timer.stop();
 		timer = new Timer(750, new ActionListener(){
 			@Override
@@ -205,6 +205,8 @@ public class Tetris extends JPanel{
 					}
 					inHardDrop = true;
 					timer.setDelay(1);
+					timer.setInitialDelay(1);
+					timer.restart();
 				}
 			}
 		};
@@ -295,6 +297,7 @@ public class Tetris extends JPanel{
     	If the game isn't over, stores the piece in the grid, checks for cleared rows, and starts the next piece*/
 		if(!currentPiece.moveDown()){
 			if(inSoftDrop || inHardDrop){
+				timer.setInitialDelay(500);
 				timer.setDelay(delay);
 				score += inHardDrop ? 2*Math.min(rowsDropped, 20) : Math.min(rowsDropped, 20);
 				inSoftDrop = false;
@@ -528,11 +531,7 @@ public class Tetris extends JPanel{
 		g2d.drawString("" + level, POINTSX + POINTSWIDTH - fm.stringWidth("" + level) - 2, POINTSY + 1 + 6*textHeight - textAscent/2);
 
 		paintGrid(g2d);
-		if(gameStarted && !paused){
-			currentPiece.paint(g2d);
-			paintNextPieces(g2d);
-			paintHeldPiece(g2d);
-		}else if(paused){
+		if(paused){
 			paintPauseScreen(g2d);
 		}else if(countdown !=0){
 			g2d.setColor(Color.WHITE);
@@ -540,6 +539,10 @@ public class Tetris extends JPanel{
 			fm = g2d.getFontMetrics();
 			String time = countdown + "";
 			g2d.drawString(time, GRIDSTARTX + (BOARDWIDTH*PIXELSIZE- fm.stringWidth(time))/2, GRIDSTARTY + 1 + fm.getHeight() - fm.getAscent()/2);
+		}else if(gameStarted){
+			currentPiece.paint(g2d);
+			paintNextPieces(g2d);
+			paintHeldPiece(g2d);
 		}else{
 			paintTitleScreen(g2d);
 		}
@@ -591,12 +594,16 @@ public class Tetris extends JPanel{
 		g2d.drawString("UP/X: Clockwise", GRIDSTARTX + (startWidth - fm.stringWidth("UP/X: Clockwise"))/2, startHeight + 80);
 		g2d.drawString("Z/CTRL: Counterclockwise", GRIDSTARTX + (startWidth - fm.stringWidth("Z/CTRL: Counterclockwise"))/2, startHeight + 120);
 		g2d.drawString("C/SHIFT: Hold", GRIDSTARTX + (startWidth - fm.stringWidth("C/SHIFT: Hold"))/2, startHeight + 160);
+		g2d.drawString("ESC/F1: Pause & Unpause", GRIDSTARTX + (startWidth - fm.stringWidth("ESC/F1: Pause & Unpause"))/2, startHeight + 200);
 		if(!paused){
-			g2d.drawString("-Press Enter to Start-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press Enter to Start-"))/2, startHeight + 200);
+			g2d.drawString("-Press Enter to Start-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press Enter to Start-"))/2, startHeight + 240);
+		}else{
+			g2d.drawString("-Press ESC/F1 to Unpause-", GRIDSTARTX + (startWidth - fm.stringWidth("-Press ESC/F1 to Unpause-"))/2, startHeight + 240);
 		}
 	}
 
 	private void paintPauseScreen(Graphics2D g2d){
+		//Paints the pause screen
 		g2d.setFont(new Font("Consolas", Font.BOLD, 60));
 		FontMetrics fm = g2d.getFontMetrics();
 		g2d.setColor(Color.WHITE);
